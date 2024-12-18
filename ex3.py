@@ -11,19 +11,30 @@ def log_evidence(model: BayesianLinearRegression, X, y):
     :param y: the observed responses (y values)
     :return: the log-evidence of the model on the observed data
     """
-    # extract the variables of the prior distribution
-    mu = model.mu
-    sig = model.cov
-    n = model.sig
+    # Extract prior distribution variables
+    mu_prior = model.mu
+    cov_prior = model.cov
+    noise_var = model.sig
 
-    # extract the variables of the posterior distribution
+    # Fit the model to get posterior distribution variables
     model.fit(X, y)
-    map = model.fit_mu
-    map_cov = model.fit_cov
-
+    mu_posterior = model.fit_mu
+    cov_posterior = model.fit_cov
+    H = model.h(X)
     # calculate the log-evidence
-    # <your code here>
-    return 0.0
+
+    # log determinants:
+    sign_prior, logdet_prior = np.linalg.slogdet(cov_prior)
+    sign_post, logdet_post = np.linalg.slogdet(cov_posterior)
+
+    # Evidence terms
+    log_det_term = 0.5 * (logdet_post - logdet_prior)
+    quadratic_term = -0.5 * ((mu_posterior - mu_prior).T @ np.linalg.inv(cov_prior) @ (mu_posterior - mu_prior))
+    residuals = y - H @ mu_posterior
+    data_fit_term = -0.5 * ((1 / noise_var) * np.sum(residuals ** 2) + X.shape[0] * np.log(noise_var))
+    normalization_term = -(H.shape[0] / 2) * np.log(2 * np.pi)
+
+    return log_det_term + quadratic_term + data_fit_term + normalization_term
 
 
 def main():
